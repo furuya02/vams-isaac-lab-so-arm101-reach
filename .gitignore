@@ -1,0 +1,33 @@
+# 認証情報・環境変数
+.env
+*.env
+aws-credentials*
+
+# Python
+__pycache__/
+*.pyc
+*.egg-info/
+.venv/
+dist/
+build/
+
+# パッケージング成果物
+*.tar.gz
+*.zip
+*.whl
+
+# 学習ログ・チェックポイント・動画
+logs/
+checkpoints/
+*.pt
+videos/
+*.mp4
+
+# clone してくる外部リポジトリ（再配布しない）
+isaac_so_arm101/
+visual-asset-management-system/
+
+# OS / エディタ
+.DS_Store
+.idea/
+.vscode/

@@ -116,9 +116,24 @@ GLOBAL ワークフローを作る:
 
 ## 後片付け（★必須）
 
-- `bash scripts/destroy.sh`
+- `bash scripts/destroy.sh`（AWS クラウド側のリソースを削除。NAT/VPC 常駐課金の停止）
 - Cost Explorer / マネジメントコンソールで NAT GW・EFS・ECR・OpenSearch 等の残存がないか確認
 - 放置厳禁（NAT/VPC が常駐課金）
+
+### ローカル作業ディレクトリ（`$WORKDIR` 既定 `~/work/vams`）について
+`destroy.sh` は **AWS 上のリソースのみ**削除し、**ローカルの clone は削除しない**。実行後も以下が残る:
+```
+~/work/vams
+├── isaac_so_arm101              # カスタム環境のベース（build-custom-env.sh が clone）
+├── reach-grasp                  # fork 差分（同上）
+└── visual-asset-management-system  # VAMS 本体（deploy.sh が clone）
+```
+- これらは次回の `deploy.sh` / `build-custom-env.sh` の作業ディレクトリとして再利用される（既にあれば再 clone をスキップ）。
+- **不要なら削除して問題ない**（数 GB 規模。次回実行時に再 clone される）:
+  ```bash
+  rm -rf ~/work/vams
+  ```
+- 別の場所を使いたい場合は `WORKDIR=/path/to/dir bash scripts/deploy.sh` で変更可。
 
 ## トラブルシュート
 

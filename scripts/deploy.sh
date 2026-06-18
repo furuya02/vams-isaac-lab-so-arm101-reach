@@ -6,15 +6,18 @@
 # 前提: AWS 認証情報, Node 20+, Python 3.12+, Docker, AWS CDK CLI, jq
 set -euo pipefail
 
-# CDK の Lambda レイヤー bundling は docker build → docker run を行う。buildx(BuildKit)が
-# 既定で attestation 付き manifest index を生成すると、生成イメージが `docker run` 不可になり
-# "pull access denied for cdk-<hash>" で失敗する（Rancher Desktop / containerd image store で発生）。
-# 下記で attestation を無効化し、run 可能な単一イメージを生成させる。
+# 環境依存のビルド失敗を抑制するための設定。
+# CDK の Lambda レイヤー bundling は docker build → docker run を行うが、新しめの buildx(BuildKit)
+# ＋ Rancher Desktop / containerd image store 環境では、既定で attestation 付き manifest index が
+# 生成され、その結果イメージが docker run 不可になって "pull access denied for cdk-<hash>" で失敗する。
+# attestation を無効化して run 可能な単一イメージを生成させ、環境差によらず安定してビルドできるようにする。
+# （この問題が出ない環境では無害な設定）
 export BUILDX_NO_DEFAULT_ATTESTATIONS=1
 
 REGION="${AWS_REGION:-ap-northeast-1}"
 VAMS_REF="${VAMS_REF:-v2.5.1}"                 # Isaac Lab は 2.4.0+。再現性のためタグ固定
 WORKDIR="${WORKDIR:-$HOME/work/vams}"
+export WORKDIR                                  # 子スクリプト(patch-vams-*.sh)へ確実に継承させる
 REPO_DIR="$(cd "$(dirname "$0")/.." && pwd)"   # このリポジトリのルート
 
 ACCOUNT_ID="$(aws sts get-caller-identity --query Account --output text)"
@@ -40,8 +43,8 @@ cd "$WORKDIR/visual-asset-management-system"
 # 1.5) カスタム環境を使う場合の VAMS 修正（フェーズ2 SO-ARM101 で必須・ビルトインのみなら影響なし）
 #   ① コンテナ: pip install -e → --no-deps（editable はアーカイブ不可＋依存再取得回避）
 #   ② 実行Lambda: inputParameters の customEnvironmentS3Uri を job config に伝播
-WORKDIR="$WORKDIR" bash "$REPO_DIR/custom-env/patch-vams-container.sh" || true
-WORKDIR="$WORKDIR" bash "$REPO_DIR/custom-env/patch-vams-lambda.sh" || true
+bash "$REPO_DIR/custom-env/patch-vams-container.sh"
+bash "$REPO_DIR/custom-env/patch-vams-lambda.sh"
 
 # 2) config 作成（commercial テンプレ＋本リポジトリの差分パッチ）
 cp infra/config/config.template.commercial.json infra/config/config.json
